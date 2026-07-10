@@ -1,0 +1,23 @@
+const Footer = () => {
+  return (
+    <footer className="bg-white border-t border-gray-200 py-8 mt-auto">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="text-sm text-gray-500">
+            &copy; {new Date().getFullYear()} University Awareness Hub — Built for Malcolm Mwakitwange
+          </div>
+          <div className="flex items-center gap-6 text-sm text-gray-400">
+            <span className="flex items-center gap-1">
+              <i className="fas fa-shield-alt text-indigo-400"></i> GDPR Compliant
+            </span>
+            <span className="flex items-center gap-1">
+              <i className="fas fa-heart text-red-400"></i> Referral Tracking
+            </span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
+export default Footer;

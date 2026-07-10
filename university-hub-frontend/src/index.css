@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Dark mode custom styles */
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300;
+  }
+}
+
+.bg-pattern {
+  background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.dark .bg-pattern {
+  background-image: radial-gradient(#374151 1px, transparent 1px);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.card-hover {
+  transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+}
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -12px rgba(0,0,0,0.15);
+}
+.dark .card-hover:hover {
+  box-shadow: 0 20px 40px -12px rgba(255,255,255,0.1);
+}
+
+.file-upload-area {
+  border: 2px dashed #d1d5db;
+  transition: border-color 0.2s;
+}
+.dark .file-upload-area {
+  border-color: #4b5563;
+}
+.file-upload-area:hover {
+  border-color: #4f46e5;
+}
+
+.dashboard-stat {
+  background: white;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  border: 1px solid #f3f4f6;
+}
+.dark .dashboard-stat {
+  background: #1f2937;
+  border-color: #374151;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.dashboard-stat .icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.toast {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 9999;
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  background: #1f2937;
+  color: white;
+  box-shadow: 0 20px 60px -12px rgba(0,0,0,0.3);
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.4s ease;
+}
+.dark .toast {
+  background: #374151;
+  box-shadow: 0 20px 60px -12px rgba(0,0,0,0.5);
+}
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+.toast.success { background: #065f46; }
+.toast.error { background: #991b1b; }
+.toast.info { background: #1e40af; }
+
+/* Dark mode specific styles for forms */
+.dark input,
+.dark select,
+.dark textarea {
+  @apply bg-gray-800 border-gray-700 text-gray-100;
+}
+.dark input:focus,
+.dark select:focus,
+.dark textarea:focus {
+  @apply border-indigo-400 ring-indigo-400/20;
+}
+
+/* Dark mode for cards and containers */
+.dark .bg-white {
+  @apply bg-zinc-900;
+}
+.dark .bg-gray-50 {
+  @apply bg-zinc-950;
+}
+.dark .border-gray-100 {
+  @apply border-gray-700;
+}
+.dark .border-gray-200 {
+  @apply border-gray-700;
+}
+.dark .text-gray-500 {
+  @apply text-gray-400;
+}
+.dark .text-gray-600 {
+  @apply text-gray-300;
+}
+.dark .text-gray-700 {
+  @apply text-gray-200;
+}
+.dark .text-gray-900 {
+  @apply text-gray-50;
+}
+.dark .bg-indigo-50 {
+  @apply bg-indigo-900/30;
+}
+.dark .bg-blue-50 {
+  @apply bg-blue-900/30;
+}
+.dark .bg-green-50 {
+  @apply bg-green-900/30;
+}
+.dark .bg-yellow-50 {
+  @apply bg-yellow-900/30;
+}
+.dark .bg-purple-50 {
+  @apply bg-purple-900/30;
+}
+.dark .bg-red-50 {
+  @apply bg-red-900/30;
+}
+
+/* Dark mode for hover states */
+.dark .hover\\:bg-gray-100:hover {
+  @apply hover:bg-gray-700;
+}
+.dark .hover\\:bg-gray-50:hover {
+  @apply hover:bg-gray-700/50;
+}
