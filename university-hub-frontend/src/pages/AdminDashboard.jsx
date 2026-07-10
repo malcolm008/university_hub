@@ -10,11 +10,11 @@ const DashboardContent = () => {
     registrations, 
     loadRegistrations, 
     ambassadors, 
-    createAmbassador,
-    updateAmbassador,
-    deleteAmbassador,
-    toggleAmbassadorStatus,
-    loadAmbassadors,
+    createAmbassador,        
+    updateAmbassador,        
+    deleteAmbassador,      
+    toggleAmbassadorStatus,  
+    loadAmbassadors,         
     proofs, 
     getStatsForAmbassador, 
     validateReferral, 
@@ -63,7 +63,7 @@ const DashboardContent = () => {
     stats: getStatsForAmbassador(a.slug),
   })).sort((a, b) => b.stats.total - a.stats.total);
 
-  const handleAddAmbassador = (e) => {
+  const handleAddAmbassador = async (e) => {
     e.preventDefault();
     if (!newAmbassador.name || !newAmbassador.slug || !newAmbassador.email) {
       showToast('Please fill in all fields.', 'error');
@@ -77,10 +77,17 @@ const DashboardContent = () => {
       showToast('Email already exists.', 'error');
       return;
     }
-    setAmbassadors(prev => [...prev, { ...newAmbassador, id: 'amb_' + Date.now(), active: true }]);
-    setNewAmbassador({ name: '', slug: '', email: '' });
-    setShowAddAmbassador(false);
-    showToast('Ambassador added!', 'success');
+    const result = await createAmbassador({
+      name: newAmbassador.name,
+      email: newAmbassador.email,
+      ambassadorSlug: newAmbassador.slug,
+      password: 'ambassador123',
+    });
+
+    if (result.success) {
+      setNewAmbassador({ name: '', slug: '', email: '' });
+      setShowAddAmbassador(false);
+    }
   };
 
   const handleEditAmbassador = (ambassador) => {
@@ -89,7 +96,7 @@ const DashboardContent = () => {
     setShowEditAmbassador(true);
   };
 
-  const handleUpdateAmbassador = (e) => {
+  const handleUpdateAmbassador = async (e) => {
     e.preventDefault();
     if (!newAmbassador.name || !newAmbassador.slug || !newAmbassador.email) {
       showToast('Please fill in all fields.', 'error');
@@ -107,31 +114,45 @@ const DashboardContent = () => {
       return;
     }
 
-    setAmbassadors(prev => prev.map(a => a.id === editingAmbassador.id ? { ...a, name: newAmbassador.name, slug: newAmbassador.slug, email: newAmbassador.email } : a));
-    setNewAmbassador({ name: '', slug: '', email: '' });
-    setShowEditAmbassador(false);
-    setEditingAmbassador(null);
-    showToast('Ambassador updated!', 'success');
+    const result = await updateAmbassador(editingAmbassador.id, {
+      name: newAmbassador.name,
+      email: newAmbassador.email,
+      ambassadorSlug: newAmbassador.slug,
+    });
+
+    if (result.success) {
+      setNewAmbassador({ name: '', slug: '', email: '' });
+      setShowEditAmbassador(false);
+      setEditingAmbassador(null);
+    }
   };
 
-  const handleDeleteAmbassador = (slug) => {
+  const handleDeleteAmbassador = async (slug) => {
     if (window.confirm('Are you sure you want to delete this ambassador? This action can not be undone.')) {
+      const ambassador = ambassadors.find(a => a.slug === slug);
+      if (!ambassador) return;
+
       const hasReferrals = registrations.some(r => r.reffererSlug === slug);
       if (hasReferrals) {
         if (!window.confirm('This ambassador has referrals. Deleting them will remove the referral data. Continue?')) {
           return;
         }
       }
-      setAmbassadors(prev => prev.filter(a => a.slug !== slug));
-      showToast('Ambassador deleted successfully!', 'success');
+      
+      const result = await deleteAmbassador(ambassador.id);
+      if (result.success) {
+        showToast('Ambassador deleted successfully!', 'success');
+      }
     }
   };
 
-  const toggleAmbassador = (slug) => {
+  const toggleAmbassador = async (slug) => {
     const ambassador = ambassadors.find(a => a.slug === slug);
-    if (ambassador) {
-      const newStatus =  !ambassador.active;
-      setAmbassadors(prev => prev.map(a => a.slug === slug ? { ...a, active: newStatus} : a));
+    if (ambassador) return;
+
+    const result = await toggleAmbassadorStatus(ambassador.id);
+    if (result.success){
+      const newStatus = !ambassador.active;
       showToast(`Ambassador ${newStatus ? 'activated' : 'deactivated'}.`, 'info');
     }
   };

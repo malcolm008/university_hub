@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 
 import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { api, handleApiError } from '../../../university-hub-backend/src/services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const AppContext = createContext();
@@ -22,55 +23,6 @@ const safeParseResponse = async (response) => {
   };
 };
 
-// Helper function to handle API errors
-const handleApiError = (error) => {
-  console.error('API Error:', error);
-  return {
-    success: false,
-    message: error.message || 'An error occurred',
-  };
-};
-
-// API client
-const api = {
-  auth: {
-    login: (data) => fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }).then(res => safeParseResponse(res)),
-    
-    getMe: (token) => fetch(`${API_URL}/auth/me`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    }).then(res => safeParseResponse(res)),
-    
-    logout: (token) => fetch(`${API_URL}/auth/logout`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-    }).then(res => safeParseResponse(res)),
-  },
-  registrations: {
-    create: (data) => fetch(`${API_URL}/registrations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    }).then(res => safeParseResponse(res)),
-    getByAmbassador: (token, slug) => fetch(`${API_URL}/registrations/ambassador/${slug}`, {
-      headers: { 'Authorization': `Bearer ${token}` },
-    }).then(res => safeParseResponse(res)),
-  },
-  proofs: {
-    submit: (token, formData) => fetch(`${API_URL}/proofs`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}` },
-      body: formData,
-    }).then(res => safeParseResponse(res)),
-    validate: (token, registrationId) => fetch(`${API_URL}/proofs/validate/${registrationId}`, {
-      method: 'PUT',
-      headers: { 'Authorization': `Bearer ${token}` },
-    }).then(res => safeParseResponse(res)),
-  },
-};
 
 export const useApp = () => {
   const context = useContext(AppContext);
@@ -95,26 +47,25 @@ export const AppProvider = ({ children }) => {
   const [sessionExpiry, setSessionExpiry] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // ✅ Define showToast BEFORE using it in other functions
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type, show: true });
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4000);
   }, []);
 
-  // ✅ Define clearUserData AFTER showToast (since it uses showToast)
+
   const clearUserData = useCallback(() => {
     setUser(null);
     setToken(null);
     setSessionExpiry(null);
     setRegistrations([]);
     setProofs([]);
-    // Clear localStorage
+  
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('sessionExpiry');
-    // Clear sessionStorage
+
     sessionStorage.removeItem('lastRegistration');
-    // Clear cookies if any
+
     document.cookie.split(";").forEach((c) => {
       document.cookie = c
         .replace(/^ +/, "")
@@ -122,20 +73,18 @@ export const AppProvider = ({ children }) => {
     });
   }, []);
 
-  // ✅ Check if session is still valid
   const isSessionValid = useCallback(() => {
     if (!sessionExpiry) return false;
     return new Date().getTime() < sessionExpiry;
   }, [sessionExpiry]);
 
-  // ✅ Refresh session (extend by 30 days)
   const refreshSession = useCallback(() => {
     const newExpiry = new Date().getTime() + SESSION_DURATION;
     setSessionExpiry(newExpiry);
     localStorage.setItem('sessionExpiry', newExpiry.toString());
   }, [SESSION_DURATION]);
 
-  // ✅ Load user from token on mount - use a separate effect with proper cleanup
+
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
@@ -145,7 +94,7 @@ export const AppProvider = ({ children }) => {
     if (storedSessionExpiry) {
       const expiry = parseInt(storedSessionExpiry);
       if (new Date().getTime() > expiry) {
-        // Session expired - clear everything without calling setState directly
+
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('sessionExpiry');
@@ -186,9 +135,8 @@ export const AppProvider = ({ children }) => {
     } else {
       setIsInitialized(true);
     }
-  }, []); // Empty dependency array - runs once on mount
+  }, []);
 
-  // ✅ Auto-refresh session on user activity - separate from initialization
   useEffect(() => {
     if (!user || !isInitialized) return;
 
@@ -205,7 +153,7 @@ export const AppProvider = ({ children }) => {
     // Check session validity every minute
     const interval = setInterval(() => {
       if (!isSessionValid()) {
-        // Use a timeout to avoid setState during render
+
         setTimeout(() => {
           clearUserData();
           showToast('Session expired. Please login again.', 'error');
@@ -221,7 +169,6 @@ export const AppProvider = ({ children }) => {
     };
   }, [user, isInitialized, refreshSession, isSessionValid, clearUserData, showToast]);
 
-  // ✅ Login function with 30-day session
   const login = useCallback(async (email, password, rememberMe = true) => {
     setIsLoading(true);
     try {
@@ -234,11 +181,9 @@ export const AppProvider = ({ children }) => {
         setUser(userData);
         setToken(tokenData);
         
-        // Store in localStorage with session expiry
         localStorage.setItem('token', tokenData);
         localStorage.setItem('user', JSON.stringify(userData));
         
-        // Set session expiry (30 days from now if remember me, else session only)
         if (rememberMe) {
           const expiry = new Date().getTime() + SESSION_DURATION;
           setSessionExpiry(expiry);
@@ -269,7 +214,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [showToast, SESSION_DURATION]);
 
-  // ✅ Logout function - clears everything
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -285,7 +229,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, clearUserData, showToast]);
 
-  // ✅ Register function
   const register = useCallback(async (userData) => {
     setIsLoading(true);
     try {
@@ -315,7 +258,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [showToast, SESSION_DURATION]);
 
-  // ✅ Add Registration function
   const addRegistration = useCallback(async (data) => {
     setIsLoading(true);
     try {
@@ -337,7 +279,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [showToast]);
 
-  // ✅ Submit Proof function
   const submitProof = useCallback(async (registrationId, proofData) => {
     setIsLoading(true);
     try {
@@ -365,7 +306,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, showToast]);
 
-  // ✅ Validate Referral function
   const validateReferral = useCallback(async (registrationId) => {
     setIsLoading(true);
     try {
@@ -391,7 +331,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, showToast]);
 
-  // ✅ Load Registrations function
   const loadRegistrations = useCallback(async (slug = null) => {
     setIsLoading(true);
     try {
@@ -419,7 +358,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, showToast]);
 
-  // Load ambassadors from API
   const loadAmbassadors = useCallback(async (includeInactive = false) => {
     setIsLoading(true);
     try {
@@ -440,7 +378,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, showToast]);
 
-  // Create ambassador
   const createAmbassador = useCallback(async (ambassadorData) => {
     setIsLoading(true);
     try {
@@ -462,14 +399,13 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, showToast]);
 
-  // Update ambassador
   const updateAmbassador = useCallback(async (id, ambassadorData) => {
     setIsLoading(true);
     try {
       const response = await api.ambassadors.update(token, id, ambassadorData);
       if (response.success) {
         setAmbassadors(prev => 
-          prev.map(a => a.id === id ? response.ambassador : a)
+          prev.map(a => a.id === id ? { ...a, ...response.ambassador } : a)
         );
         showToast('Ambassador updated successfully!', 'success');
         return { success: true, ambassador: response.ambassador };
@@ -486,7 +422,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, showToast]);
 
-  // Delete ambassador
   const deleteAmbassador = useCallback(async (id) => {
     setIsLoading(true);
     try {
@@ -508,7 +443,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, showToast]);
 
-  // Toggle ambassador status
   const toggleAmbassadorStatus = useCallback(async (id) => {
     setIsLoading(true);
     try {
@@ -532,7 +466,6 @@ export const AppProvider = ({ children }) => {
     }
   }, [token, showToast]);
 
-  // ✅ Utility functions
   const getReferralsByAmbassador = useCallback((slug) => {
     return registrations.filter(r => r.referrerSlug === slug);
   }, [registrations]);
@@ -559,7 +492,6 @@ export const AppProvider = ({ children }) => {
     return proofs.find(p => p.registrationId === regId);
   }, [proofs]);
 
-  // ✅ Memoized value
   const value = useMemo(() => ({
     user,
     setUser,
@@ -584,6 +516,11 @@ export const AppProvider = ({ children }) => {
     submitProof,
     validateReferral,
     loadRegistrations,
+    loadAmbassadors,        
+    createAmbassador,        
+    updateAmbassador,      
+    deleteAmbassador,       
+    toggleAmbassadorStatus,  
     getReferralsByAmbassador,
     getStatsForAmbassador,
     getAmbassadorBySlug,
@@ -591,11 +528,6 @@ export const AppProvider = ({ children }) => {
     getProofByRegistrationId,
     showToast,
     toast,
-    loadAmbassadors,
-    createAmbassador,
-    updateAmbassador,
-    deleteAmbassador,
-    toggleAmbassadorStatus,
   }), [
     user,
     token,
@@ -615,6 +547,11 @@ export const AppProvider = ({ children }) => {
     submitProof,
     validateReferral,
     loadRegistrations,
+    loadAmbassadors,
+    createAmbassador,
+    updateAmbassador,
+    deleteAmbassador,
+    toggleAmbassadorStatus,
     getReferralsByAmbassador,
     getStatsForAmbassador,
     getAmbassadorBySlug,
@@ -622,11 +559,6 @@ export const AppProvider = ({ children }) => {
     getProofByRegistrationId,
     showToast,
     toast,
-    loadAmbassadors,
-    createAmbassador,
-    updateAmbassador,
-    deleteAmbassador,
-    toggleAmbassadorStatus,
   ]);
 
   return (

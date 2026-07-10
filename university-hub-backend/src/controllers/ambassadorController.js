@@ -94,7 +94,7 @@ export const createAmbassador = async (req, res) => {
     try {
         const { name, email, password, ambassadorSlug, bio, socialLinks } = req.body;
 
-        const exitstingEmail = await User.findOne({ where: { email } });
+        const existingEmail = await User.findOne({ where: { email } });
         if (existingEmail) {
             return res.status(400).json({ message: 'Email already exists' });
         }
@@ -263,7 +263,7 @@ export const getAmbassadorStats = async (req, res) => {
         const { slug } = req.params;
 
         const ambassador = await User.findOne({
-            where: { ambassadorSlug: slug, role: 'ambassaador' },
+            where: { ambassadorSlug: slug, role: 'ambassador' },
             include: [{
                 model: Registration,
                 as: 'registrations',
@@ -276,7 +276,7 @@ export const getAmbassadorStats = async (req, res) => {
 
         const registrations = ambassador.registrations || [];
         const total = registrations.length;
-        const submitted = registratins.filter(r => r.proofStatus === 'submitted').length;
+        const submitted = registrations.filter(r => r.proofStatus === 'submitted').length;
         const validated = registrations.filter(r => r.validated).length;
         const pending = total - submitted;
         const rate = total > 0 ? Math.round((submitted / total) * 100) : 0;
