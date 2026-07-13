@@ -5,8 +5,8 @@ import morgan from 'morgan';
 import compression from 'compression';
 import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
-import sequelize from './config/database.js';  // ✅ Default import
-import { ensureDatabaseExists } from './config/database.js';  // ✅ Named import
+import sequelize from './config/database.js';
+import { ensureDatabaseExists } from './config/database.js';
 import authRoutes from './routes/authRoutes.js';
 import registrationRoutes from './routes/registrationRoutes.js';
 import proofRoutes from './routes/proofRoutes.js';
@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5000;
 
 // Rate limiting
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000, 
   max: process.env.RATE_LIMIT_MAX || 100, // Allow 100 requests per 15 minutes
   message: {
     success: false,
