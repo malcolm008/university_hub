@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import StatsCard from '../components/dashboard/StatsCard';
 import ReferralTable from '../components/dashboard/ReferralTable';
 import ProtectedRoute from '../components/ProtectedRoute';
 
-// Move DashboardContent outside of AmbassadorDashboard
 const DashboardContent = ({ setCurrentPage }) => {
   const { 
     user, 
     registrations, 
-    loadRegistrations, 
+    initializeAmbassadorDashboard,
+    initializeDashboard,
     getStatsForAmbassador, 
     getReferralsByAmbassador, 
     getProofByRegistrationId, 
@@ -24,39 +24,43 @@ const DashboardContent = ({ setCurrentPage }) => {
   const [selectedReg, setSelectedReg] = useState(null);
   const [showProofModal, setShowProofModal] = useState(false);
 
-  // Get the ambassador's slug from the user object
   const ambassadorSlug = user?.ambassadorSlug || 'malcolm';
 
-  // Load registrations on mount
+  // Load registrations only once
   useEffect(() => {
     if (user?.role === 'ambassador' || user?.role === 'admin') {
-      loadRegistrations(ambassadorSlug);
+      console.log('AmbassadorDashboard: Starting initial load');
+      initializeDashboard();
     }
-  }, [user, loadRegistrations, ambassadorSlug]);
+  }, [user, ambassadorSlug, initializeAmbassadorDashboard]);
 
-  const stats = getStatsForAmbassador(ambassadorSlug);
-  const referrals = getReferralsByAmbassador(ambassadorSlug);
+  // Memoize stats and referrals
+  const stats = useMemo(() => getStatsForAmbassador(ambassadorSlug), [getStatsForAmbassador, ambassadorSlug, registrations]);
+  const referrals = useMemo(() => getReferralsByAmbassador(ambassadorSlug), [getReferralsByAmbassador, ambassadorSlug, registrations]);
 
-  const filtered = referrals.filter(r => {
-    if (filter === 'pending') return r.proofStatus === 'pending';
-    if (filter === 'submitted') return r.proofStatus === 'submitted';
-    if (filter === 'validated') return r.validated === true;
-    return true;
-  }).filter(r => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return r.fullName?.toLowerCase().includes(q) || r.email?.toLowerCase().includes(q);
-  }).filter(r => {
-    if (dateRange.from) {
-      const d = new Date(r.registeredAt);
-      if (d < new Date(dateRange.from)) return false;
-    }
-    if (dateRange.to) {
-      const d = new Date(r.registeredAt);
-      if (d > new Date(dateRange.to)) return false;
-    }
-    return true;
-  });
+  // Memoize filtered results
+  const filtered = useMemo(() => {
+    return referrals.filter(r => {
+      if (filter === 'pending') return r.proofStatus === 'pending';
+      if (filter === 'submitted') return r.proofStatus === 'submitted';
+      if (filter === 'validated') return r.validated === true;
+      return true;
+    }).filter(r => {
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return r.fullName?.toLowerCase().includes(q) || r.email?.toLowerCase().includes(q);
+    }).filter(r => {
+      if (dateRange.from) {
+        const d = new Date(r.registeredAt);
+        if (d < new Date(dateRange.from)) return false;
+      }
+      if (dateRange.to) {
+        const d = new Date(r.registeredAt);
+        if (d > new Date(dateRange.to)) return false;
+      }
+      return true;
+    });
+  }, [referrals, filter, search, dateRange]);
 
   const handleExport = () => {
     const data = filtered.map(r => ({
@@ -234,7 +238,6 @@ const DashboardContent = ({ setCurrentPage }) => {
   );
 };
 
-// Main AmbassadorDashboard component
 const AmbassadorDashboard = ({ setCurrentPage }) => {
   return (
     <ProtectedRoute allowedRoles={['ambassador', 'admin']}>

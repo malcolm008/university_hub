@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import ReferralTable from '../components/dashboard/ReferralTable';
 import ProtectedRoute from '../components/ProtectedRoute';
@@ -8,20 +8,19 @@ const DashboardContent = () => {
     user, 
     logout, 
     registrations, 
-    loadRegistrations, 
+    initializeDashboard,
     ambassadors, 
     createAmbassador,        
     updateAmbassador,        
     deleteAmbassador,      
-    toggleAmbassadorStatus,  
-    loadAmbassadors,         
+    toggleAmbassadorStatus,          
     proofs, 
     getStatsForAmbassador, 
     validateReferral, 
     showToast,
     isLoading 
   } = useApp();
-  
+
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedAmbassador, setSelectedAmbassador] = useState('all');
@@ -30,13 +29,13 @@ const DashboardContent = () => {
   const [editingAmbassador, setEditingAmbassador] = useState(null);
   const [newAmbassador, setNewAmbassador] = useState({ name: '', slug: '', email: '' });
 
-  // Load registrations on mount
   useEffect(() => {
-    if (user?.role === 'admin') {
-      loadRegistrations();
-      loadAmbassadors();
+    // Only proceed if admin and NEVER loaded before
+    if (user?.role === 'admin' ) {
+      console.log('AdminDashboard: Starting initial load (ONLY ONCE)');
+      initializeDashboard();
     }
-  }, [user, loadRegistrations, loadAmbassadors]);
+  }, [user, initializeDashboard]);
 
   const handleLogout = () => {
     logout();

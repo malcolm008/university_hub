@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import ThemeToggle from '../ThemeToggle';
 
@@ -11,14 +11,13 @@ const Navbar = ({ currentPage, setCurrentPage }) => {
   const isLoggedIn = !!user;
 
   // Build navigation items based on user role
-  const getNavItems = () => {
+  const navItems = useMemo(() => {
     const items = [
       { label: 'Home', page: 'home', icon: 'fa-house' },
       { label: 'Gallery', page: 'gallery', icon: 'fa-images' },
       { label: 'Register', page: 'register', icon: 'fa-pen-to-square' },
     ];
 
-    // Add Dashboard for authenticated users (ambassador or admin)
     if (isLoggedIn && isAmbassador) {
       items.push({ 
         label: 'Dashboard', 
@@ -27,7 +26,6 @@ const Navbar = ({ currentPage, setCurrentPage }) => {
       });
     }
 
-    // Add Admin pages for admin users
     if (isLoggedIn && isAdmin) {
       items.push({ 
         label: 'Admin', 
@@ -42,9 +40,8 @@ const Navbar = ({ currentPage, setCurrentPage }) => {
     }
 
     return items;
-  };
+  }, [isLoggedIn, isAmbassador, isAdmin]);
 
-  const navItems = getNavItems();
 
   const handleLogout = () => {
     logout();

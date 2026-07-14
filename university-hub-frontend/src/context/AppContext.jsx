@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 
-import { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
-import { api, handleApiError } from '../../../university-hub-backend/src/services/api';
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { api, handleApiError } from '../services/api'; // ✅ FIXED: Correct import path
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 const AppContext = createContext();
@@ -23,7 +23,6 @@ const safeParseResponse = async (response) => {
   };
 };
 
-
 export const useApp = () => {
   const context = useContext(AppContext);
   if (!context) {
@@ -33,6 +32,11 @@ export const useApp = () => {
 };
 
 export const AppProvider = ({ children }) => {
+  const statsCache = useRef({});
+  const isLoadingRegistrations = useRef(false);
+  const isLoadingAmbassadors = useRef(false);
+  const isDashboardInitialized = useRef(false);
+  const isAmbassadorDashboardInitialized = useRef(false);
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [registrations, setRegistrations] = useState([]);
@@ -52,7 +56,6 @@ export const AppProvider = ({ children }) => {
     setTimeout(() => setToast(prev => ({ ...prev, show: false })), 4000);
   }, []);
 
-
   const clearUserData = useCallback(() => {
     setUser(null);
     setToken(null);
@@ -63,7 +66,6 @@ export const AppProvider = ({ children }) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('sessionExpiry');
-
     sessionStorage.removeItem('lastRegistration');
 
     document.cookie.split(";").forEach((c) => {
@@ -84,17 +86,15 @@ export const AppProvider = ({ children }) => {
     localStorage.setItem('sessionExpiry', newExpiry.toString());
   }, [SESSION_DURATION]);
 
-
+  // ✅ Load user from token on mount
   useEffect(() => {
     const storedToken = localStorage.getItem('token');
     const storedUser = localStorage.getItem('user');
     const storedSessionExpiry = localStorage.getItem('sessionExpiry');
 
-    // Check if session has expired
     if (storedSessionExpiry) {
       const expiry = parseInt(storedSessionExpiry);
       if (new Date().getTime() > expiry) {
-
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('sessionExpiry');
@@ -108,14 +108,12 @@ export const AppProvider = ({ children }) => {
       setToken(storedToken);
       setUser(JSON.parse(storedUser));
       
-      // Verify token with backend
       api.auth.getMe(storedToken)
         .then(response => {
           if (response.success) {
             setUser(response.user);
             localStorage.setItem('user', JSON.stringify(response.user));
           } else {
-            // Token invalid - clear data
             localStorage.removeItem('token');
             localStorage.removeItem('user');
             localStorage.removeItem('sessionExpiry');
@@ -137,6 +135,7 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
+  // ✅ Session monitoring effect
   useEffect(() => {
     if (!user || !isInitialized) return;
 
@@ -144,16 +143,13 @@ export const AppProvider = ({ children }) => {
       refreshSession();
     };
 
-    // Listen for user activity
     const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
     events.forEach(event => {
       document.addEventListener(event, handleUserActivity);
     });
 
-    // Check session validity every minute
     const interval = setInterval(() => {
       if (!isSessionValid()) {
-
         setTimeout(() => {
           clearUserData();
           showToast('Session expired. Please login again.', 'error');
@@ -332,14 +328,23 @@ export const AppProvider = ({ children }) => {
   }, [token, showToast]);
 
   const loadRegistrations = useCallback(async (slug = null) => {
+    console.log('🔵 loadRegistrations called with slug:', slug);
+    
+    // Prevent duplicate calls using ref
+    if (isLoadingRegistrations.current) {
+      console.log('⏳ Registrations already loading, skipping...');
+      return { success: false, message: 'Already loading' };
+    }
+
+    isLoadingRegistrations.current = true;
     setIsLoading(true);
+
     try {
       let response;
       if (slug) {
         response = await api.registrations.getByAmbassador(token, slug);
       } else {
-        // For admin - need to implement getAll endpoint
-        response = await api.registrations.getAll ? await api.registrations.getAll(token) : { success: false, message: 'Not implemented' };
+        response = await api.registrations.getAll(token);
       }
       
       if (response.success) {
@@ -355,11 +360,22 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: errorMsg.message };
     } finally {
       setIsLoading(false);
+      isLoadingRegistrations.current = false;
     }
   }, [token, showToast]);
 
   const loadAmbassadors = useCallback(async (includeInactive = false) => {
+    console.log('🟢 loadAmbassadors called with includeInactive:', includeInactive);
+    
+    // Prevent duplicate calls using ref
+    if (isLoadingAmbassadors.current) {
+      console.log('⏳ Ambassadors already loading, skipping...');
+      return { success: false, message: 'Already loading' };
+    }
+
+    isLoadingAmbassadors.current = true;
     setIsLoading(true);
+
     try {
       const response = await api.ambassadors.getAll(token, includeInactive);
       if (response.success) {
@@ -375,8 +391,57 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: errorMsg.message };
     } finally {
       setIsLoading(false);
+      isLoadingAmbassadors.current = false;
     }
   }, [token, showToast]);
+
+  const initializeDashboard = useCallback(async () => {
+    if (isDashboardInitialized.current) {
+      console.log('Dashboard already initialized globally, skipping...');
+      return { success: true, alreadyInitialized: true };
+    }
+
+    console.log('AppContext: Initializing dashboard for the first time');
+    isDashboardInitialized.current = true;
+
+    try {
+      await Promise.all([
+        loadRegistrations(),
+        loadAmbassadors(),
+      ]);
+      console.log('Dahboard initialization complete');
+      return { success: true };
+    } catch (error) {
+      console.error('Dashboard initialization failed:', error);
+      isDashboardInitialized.current = false;
+      return { success: false, error };
+    }
+  }, [loadRegistrations, loadAmbassadors]);
+
+  const initializeAmbassadorDashboard = useCallback(async (slug) => {
+    if (isAmbassadorDashboardInitialized.current) {
+      console.log('Ambassador dashboard already initialized globally, skipping...');
+      return { success: true, alreadyInitialized: true };
+    }
+
+    console.log('AppContext: Initializing ambassador dashboard for the first time');
+    isAmbassadorDashboardInitialized.current = true;
+
+    try {
+      await loadRegistrations(slug);
+      console.log('Ambassador dashboard initialization complete');
+      return { success: true };
+    } catch (error) {
+      console.error('Ambassador dashboard initialization failed:', error);
+      isAmbassadorDashboardInitialized.current = false;
+      return { success: false, error };
+    }
+  }, [loadRegistrations]);
+
+  const resetDashboardInitialization = useCallback(() => {
+    isDashboardInitialized.current = false;
+    console.log('Dashboard initialization reset');
+  })
 
   const createAmbassador = useCallback(async (ambassadorData) => {
     setIsLoading(true);
@@ -471,14 +536,27 @@ export const AppProvider = ({ children }) => {
   }, [registrations]);
 
   const getStatsForAmbassador = useCallback((slug) => {
+    const cacheKey = `stats-${slug}`;
+    if (statsCache.current[cacheKey]) {
+      return statsCache.current[cacheKey];
+    }
+
     const refs = getReferralsByAmbassador(slug);
     const total = refs.length;
     const submitted = refs.filter(r => r.proofStatus === 'submitted').length;
     const pending = total - submitted;
     const validated = refs.filter(r => r.validated).length;
     const rate = total > 0 ? Math.round((submitted / total) * 100) : 0;
-    return { total, submitted, pending, validated, rate };
+
+    const result = { total, submitted, pending, validated, rate };
+    statsCache.current[cacheKey] = result;   
+
+    return result;
   }, [getReferralsByAmbassador]);
+
+  useEffect(() => {
+    statsCache.current = {};
+  }, [registrations]);
 
   const getAmbassadorBySlug = useCallback((slug) => {
     return ambassadors.find(a => a.slug === slug);
@@ -521,6 +599,9 @@ export const AppProvider = ({ children }) => {
     updateAmbassador,      
     deleteAmbassador,       
     toggleAmbassadorStatus,  
+    initializeDashboard,
+    initializeAmbassadorDashboard,
+    resetDashboardInitialization,
     getReferralsByAmbassador,
     getStatsForAmbassador,
     getAmbassadorBySlug,
@@ -552,6 +633,9 @@ export const AppProvider = ({ children }) => {
     updateAmbassador,
     deleteAmbassador,
     toggleAmbassadorStatus,
+    initializeDashboard,
+    initializeAmbassadorDashboard,
+    resetDashboardInitialization,
     getReferralsByAmbassador,
     getStatsForAmbassador,
     getAmbassadorBySlug,

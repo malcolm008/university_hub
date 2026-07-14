@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useApp } from './context/AppContext';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
@@ -16,35 +16,41 @@ function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const { user } = useApp();
 
-  const renderPage = () => {
+  const handleSetPage = useCallback((page) => {
+    setCurrentPage(page);
+  }, []);
+
+  const renderPage = useMemo(() => {
+    console.log('App: Rendering page:', currentPage);
+
     switch (currentPage) {
       case 'home':
-        return <HomePage setCurrentPage={setCurrentPage} />;
+        return <HomePage setCurrentPage={handleSetPage} />;
       case 'login':
-        return <LoginPage setCurrentPage={setCurrentPage} />;
+        return <LoginPage setCurrentPage={handleSetPage} />;
       case 'register':
-        return <RegisterPage setCurrentPage={setCurrentPage} />;
+        return <RegisterPage setCurrentPage={handleSetPage} />;
       case 'confirmation':
-        return <ConfirmationPage setCurrentPage={setCurrentPage} />;
+        return <ConfirmationPage setCurrentPage={handleSetPage} />;
       case 'proof':
-        return <ProofSubmissionPage setCurrentPage={setCurrentPage} />;
+        return <ProofSubmissionPage setCurrentPage={handleSetPage} />;
       case 'ambassador':
-        return <AmbassadorDashboard setCurrentPage={setCurrentPage} />;
+        return <AmbassadorDashboard setCurrentPage={handleSetPage} />;
       case 'admin':
-        return <AdminDashboard setCurrentPage={setCurrentPage} />;
+        return <AdminDashboard setCurrentPage={handleSetPage} />;
       case 'gallery':
-        return <GalleryPage setCurrentPage={setCurrentPage} />;
+        return <GalleryPage setCurrentPage={handleSetPage} />;
       case 'admin-gallery':
-        return <AdminGallery setCurrentPage={setCurrentPage} />;
+        return <AdminGallery setCurrentPage={handleSetPage} />;
       default:
-        return <HomePage setCurrentPage={setCurrentPage} />;
+        return <HomePage setCurrentPage={handleSetPage} />;
     }
-  };
+  }, [currentPage, handleSetPage]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <Navbar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      <main className="flex-1">{renderPage()}</main>
+      <Navbar currentPage={currentPage} setCurrentPage={handleSetPage} />
+      <main className="flex-1">{renderPage}</main>
       <Footer />
     </div>
   );
