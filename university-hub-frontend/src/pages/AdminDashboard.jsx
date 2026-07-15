@@ -147,12 +147,14 @@ const DashboardContent = () => {
 
   const toggleAmbassador = async (slug) => {
     const ambassador = ambassadors.find(a => a.slug === slug);
-    if (ambassador) return;
+    if (!ambassador) {
+      showToast('Ambassador not found', 'error');
+      return;
+    }
 
     const result = await toggleAmbassadorStatus(ambassador.id);
     if (result.success){
-      const newStatus = !ambassador.active;
-      showToast(`Ambassador ${newStatus ? 'activated' : 'deactivated'}.`, 'info');
+      showToast(`Ambassador ${result.isActive ? 'activated' : 'deactivated'}.`, 'info');
     }
   };
 
@@ -377,7 +379,7 @@ const DashboardContent = () => {
                   className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                   title="Edit Ambassador"
                 >
-                  <i className="fas fa-edit text-xs"></i>
+                  Edit
                 </button>
                 {/* Delete Button */}
                 <button 
@@ -385,7 +387,7 @@ const DashboardContent = () => {
                   className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all opacity-0 group-hover:opacity-100"
                   title="Delete Ambassador"
                 >
-                  <i className="fas fa-trash text-xs"></i>
+                  Delete
                 </button>
                 {/* Toggle Active/Inactive Button */}
                 <button 

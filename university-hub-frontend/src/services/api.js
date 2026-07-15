@@ -132,7 +132,7 @@ export const api = {
 
     toggleStatus: (token, id) => fetch(`${API_URL}/ambassadors/${id}/toggle`, {
       method: 'PATCH',
-      headers: { 'Authorization': `Bearer ${token}` },
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
     }).then(res => res.json()),
   },
 };

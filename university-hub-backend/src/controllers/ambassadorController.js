@@ -236,25 +236,30 @@ export const deleteAmbassador = async (req, res) => {
 export const toggleAmbassadorStatus = async (req, res) => {
     try {
         const { id } = req.params
+        console.log(`Toggling ambassador status for ID: ${id}`);
+
         const ambassador = await User.findOne({
             where: { id, role: 'ambassador' },
         });
 
         if (!ambassador) {
-            return res.status(404).json({ message: 'Ambassador not found' });
+            return res.status(404).json({ success: false, message: 'Ambassador not found' });
         }
 
         const newStatus = !ambassador.isActive;
         await ambassador.update({ isActive: newStatus });
+
+        console.log(`Ambassador ${ambassador.name} ${newStatus ? 'activated': 'deactivated'}`);
 
         res.json({
             success: true,
             message: `Ambassador ${newStatus ? 'activated' : 'deactivated'} successfully`,
             isActive: newStatus,
         });
+
     } catch (error) {
         console.error('Toggle ambassador status error:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
 };
 
