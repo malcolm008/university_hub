@@ -365,11 +365,10 @@ export const AppProvider = ({ children }) => {
   }, [token, showToast]);
 
   const loadAmbassadors = useCallback(async (includeInactive = false) => {
-    console.log('🟢 loadAmbassadors called with includeInactive:', includeInactive);
-    
-    // Prevent duplicate calls using ref
+    console.log('loadAmbassadors called with includeInactive:', includeInactive);
+
     if (isLoadingAmbassadors.current) {
-      console.log('⏳ Ambassadors already loading, skipping...');
+      console.log('Ambassadors already loading, skipping...');
       return { success: false, message: 'Already loading' };
     }
 
@@ -379,13 +378,33 @@ export const AppProvider = ({ children }) => {
     try {
       const response = await api.ambassadors.getAll(token, includeInactive);
       if (response.success) {
-        setAmbassadors(response.ambassadors);
-        return { success: true, ambassadors: response.ambassadors };
+        const mappedAmbassadors = response.ambassadors.map(a => ({
+          id: a.id,
+          name: a.name,
+          email: a.email,
+          role: a.role,
+          lastLogin: a.lastLogin,
+          avatar: a.avatar || '',
+          slug: a.ambassadorSlug || a.slug,
+          active: a.isActive !== undefined ? a.isActive : a.active,
+          isActive: a.isActive !== undefined ? a.isActive : a.active,
+          bio: a.bio || '',
+          socialLinks: a.socialLinks || {},
+          totalReferrals: a.totalReferrals || 0,
+          createdAt: a.createdAt,
+          updatedAt: a.updatedAt,
+        }));
+
+        console.log('Mapped ambassadors:', mappedAmbassadors);
+        setAmbassadors(mappedAmbassadors);
+        return { success: true, ambassadors: mappedAmbassadors };
       } else {
+        console.error('Failed to load ambassadors:', response.message);
         showToast(response.message || 'Failed to load ambassadors', 'error');
         return { success: false, message: response.message };
       }
     } catch (error) {
+      console.error('Load ambassadors error:', error);
       const errorMsg = handleApiError(error);
       showToast(errorMsg.message, 'error');
       return { success: false, message: errorMsg.message };
@@ -493,7 +512,6 @@ export const AppProvider = ({ children }) => {
       const response = await api.ambassadors.delete(token, id);
       if (response.success) {
         setAmbassadors(prev => prev.filter(a => a.id !== id));
-        showToast('Ambassador deleted successfully!', 'success');
         return { success: true };
       } else {
         showToast(response.message || 'Failed to delete ambassador', 'error');
@@ -502,7 +520,7 @@ export const AppProvider = ({ children }) => {
     } catch (error) {
       const errorMsg = handleApiError(error);
       showToast(errorMsg.message, 'error');
-      return { success: false, message: errorMsg.message };
+      return { success: false, message: errorMsg.message }; 
     } finally {
       setIsLoading(false);
     }
@@ -513,11 +531,7 @@ export const AppProvider = ({ children }) => {
     try {
       const response = await api.ambassadors.toggleStatus(token, id);
       if (response.success) {
-        setAmbassadors(prev => 
-          prev.map(a => 
-            a.id === id ? { ...a, active: response.isActive } : a
-          )
-        );
+        setAmbassadors(prev => prev.map(a => a.id === id ? { ...a, active: response.isActive, isActive: response.isActive } : a));
         showToast(response.message, 'success');
         return { success: true, isActive: response.isActive };
       } else {

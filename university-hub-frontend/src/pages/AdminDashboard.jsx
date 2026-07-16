@@ -131,16 +131,11 @@ const DashboardContent = () => {
       const ambassador = ambassadors.find(a => a.slug === slug);
       if (!ambassador) return;
 
-      const hasReferrals = registrations.some(r => r.reffererSlug === slug);
+      const hasReferrals = registrations.some(r => r.referrerSlug === slug);
       if (hasReferrals) {
         if (!window.confirm('This ambassador has referrals. Deleting them will remove the referral data. Continue?')) {
           return;
         }
-      }
-      
-      const result = await deleteAmbassador(ambassador.id);
-      if (result.success) {
-        showToast('Ambassador deleted successfully!', 'success');
       }
     }
   };
@@ -151,6 +146,8 @@ const DashboardContent = () => {
       showToast('Ambassador not found', 'error');
       return;
     }
+
+    console.log('Toggling ambassador:', ambassador.name, 'with ID:', ambassador.id);
 
     const result = await toggleAmbassadorStatus(ambassador.id);
     if (result.success){
@@ -361,48 +358,51 @@ const DashboardContent = () => {
           </span>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {ambassadors.map(a => (
-            <div key={a.slug} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-xl px-4 py-3 group hover:shadow-md transition-all">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">
-                  {a.name.charAt(0)}
+          {ambassadors && ambassadors.length > 0 ? (
+            ambassadors.map(a => (
+              <div key={a.id || a.slug} className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 rounded-xl px-4 py-3 group hover:shadow-md transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">
+                    {a.name && a.name.charAt(0)} {/* ✅ Safety check */}
+                  </div>
+                  <div>
+                    <div className="font-medium text-gray-800 dark:text-gray-200 text-sm">{a.name || 'Unknown'}</div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">{a.slug || 'no-slug'}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="font-medium text-gray-800 dark:text-gray-200 text-sm">{a.name}</div>
-                  <div className="text-xs text-gray-400 dark:text-gray-500">{a.slug}</div>
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => handleEditAmbassador(a)} 
+                    className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                    title="Edit Ambassador"
+                  >
+                    Edit
+                  </button>
+                  <button 
+                    onClick={() => handleDeleteAmbassador(a.slug)} 
+                    className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                    title="Delete Ambassador"
+                  >
+                    Delete
+                  </button>
+                  <button 
+                    onClick={() => toggleAmbassador(a.slug)} 
+                    className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
+                      a.active 
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50' 
+                        : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500'
+                    }`}
+                  >
+                    {a.active ? 'Active' : 'Inactive'}
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {/* Edit Button */}
-                <button 
-                  onClick={() => handleEditAmbassador(a)} 
-                  className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                  title="Edit Ambassador"
-                >
-                  Edit
-                </button>
-                {/* Delete Button */}
-                <button 
-                  onClick={() => handleDeleteAmbassador(a.slug)} 
-                  className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                  title="Delete Ambassador"
-                >
-                  Delete
-                </button>
-                {/* Toggle Active/Inactive Button */}
-                <button 
-                  onClick={() => toggleAmbassador(a.slug)} 
-                  className={`px-3 py-1 text-xs font-medium rounded-lg transition-all ${
-                    a.active 
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50' 
-                      : 'bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-300 dark:hover:bg-gray-500'
-                  }`}
-                >
-                  {a.active ? 'Active' : 'Inactive'}
-                </button>
-              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8 text-gray-500">
+              No ambassadors found.
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

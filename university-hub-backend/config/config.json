@@ -1,0 +1,26 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "mac123!",
+    "database": "university_hub",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "logging": true
+  },
+  "test": {
+    "username": "postgres",
+    "password": "mac123!",
+    "database": "university_hub_test",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "logging": false
+  },
+  "production": {
+    "username": "postgres",
+    "password": "mac123!",
+    "database": "university_hub_production",
+    "host": "127.0.0.1",
+    "dialect": "postgres",
+    "logging": false
+  }
+}
