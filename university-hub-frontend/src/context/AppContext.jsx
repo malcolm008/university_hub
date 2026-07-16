@@ -514,7 +514,9 @@ export const AppProvider = ({ children }) => {
       const response = await api.ambassadors.toggleStatus(token, id);
       if (response.success) {
         setAmbassadors(prev => 
-          prev.map(a => a.id === id ? { ...a, isActive: response.isActive } : a)
+          prev.map(a => 
+            a.id === id ? { ...a, active: response.isActive } : a
+          )
         );
         showToast(response.message, 'success');
         return { success: true, isActive: response.isActive };
